@@ -1,0 +1,11 @@
+office2, P004, 1698
+office2, P000, 378
+office2, P008, 1471
+office2, P003, 612
+office2, P011, 709
+office2, P010, 304
+office2, P007, 310
+office2, P009, 1594
+office2, P006, 916
+office2, P005, 542
+soulcity, P001, 1083
