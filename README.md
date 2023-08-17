@@ -22,10 +22,9 @@ Code and data release for the manuscript "[Consistent Direct Time-of-Flight Vide
 ## 04/03/2023: Updated demo scripts.
 
 ## Highlights:
-+ Direct time-of-flight (dToF) data super-resolution with realistic image formation model and video context.
-+ Significant improvement from multi-view fusion, with 2D feature alignment instead of 3D data alignment.
-+ Further improvement with dToF histogram information, especially on details and edges.
-+ DyDToF video dataset, with diverse environment and dynamic objects.
++ Multi-view depth video enhancement, no need for camera pose.
++ Large improvement over single-frame SOTA algorithms.
++ Synthetic video depth dataset (45k frames), with diverse environment and dynamic objects (depth, surface normal, RGB, albedo).
 
 ## Introduction
 Direct time-of-flight (dToF) sensors are promising for next-generation on-device 3D sensing. However, limited by manufacturing capabilities in a compact module, the dToF data has low spatial resolution (e.g., ~20x30 for iPhone dToF), and it requires a super-resolution step before being passed to downstream tasks. In this paper, we solve this super-resolution problem by fusing the low-resolution dToF data with the corresponding high-resolution RGB guidance. Unlike the conventional RGB-guided depth enhancement approaches which perform the fusion in a per-frame manner, we propose the first multi-frame fusion scheme to mitigate the spatial ambiguity resulting from the low-resolution dToF imaging. In addition, dToF sensors provide unique depth histogram information for each local patch, and we incorporate this dToF-specific feature in our network design to further alleviate spatial ambiguity. To evaluate our models on complex dynamic indoor environments and to provide a large-scale dToF sensor dataset, we introduce DyDToF, the first synthetic RGB-dToF video dataset that features dynamic objects and a realistic dToF simulator following the physical imaging process. We believe the methods and dataset are beneficial to a broad community as dToF depth sensing is becoming mainstream on mobile devices.
