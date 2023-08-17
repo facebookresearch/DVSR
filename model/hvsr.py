@@ -14,7 +14,6 @@ from .registry import BACKBONES
 from mmseg.utils import get_root_logger
 
 
-
 def dtof_hist_torch(d, img, rebin_idx, pitch, temp_res):
     """
     Convert from predicted depth map into a histogram
@@ -27,7 +26,7 @@ def dtof_hist_torch(d, img, rebin_idx, pitch, temp_res):
         pitch: size of each patch (iFoV), same as self.scale in main model
         temp_res: temporal resolution of dToF sensor
     """
-    d = torch.clamp(d.clone(), min=0.0, max=1.0)
+    d = torch.clamp(d.clone(), min=0.0, max=1.0).to(img.device)
     B, _, H, W = d.shape ## same resolution as final output
     _, M, _, _ = rebin_idx.shape
     albedo = torch.mean(img, dim=1).unsqueeze(1)
@@ -41,7 +40,7 @@ def dtof_hist_torch(d, img, rebin_idx, pitch, temp_res):
     ).unsqueeze(1)
 
     idx_volume = (
-        torch.arange(1, M + 1).unsqueeze(0).unsqueeze(2).unsqueeze(3).float().to(d.device)
+        torch.arange(1, M + 1).unsqueeze(0).unsqueeze(2).unsqueeze(3).float().to(img.device)
     )
     hist = ((hist - idx_volume) == 0).float()
     hist = torch.sum(
@@ -289,7 +288,7 @@ class HVSR(nn.Module):
         Note that if the input is an mirror-extended sequence, 'flows_forward'
         is not needed, since it is equal to 'flows_backward.flip(1)'.
         Args:
-            guides (tensor): Input RGB guidance sequence with
+            guides (tensor): Input low quality (LQ) sequence with
                 shape (n, t, c, h, w).
             hg_idx: Identify processing stage: init stage or refine stage
         Return:
@@ -300,20 +299,41 @@ class HVSR(nn.Module):
         """
 
         n, t, c, h, w = guides.size() ## same resolution as final output
-        guides_1 = guides[:, :-1, :, :, :].reshape(-1, c, h, w)
-        guides_2 = guides[:, 1:, :, :, :].reshape(-1, c, h, w)
-
-        flows_backward = self.spynet[f"hg_{hg_idx}"](guides_1, guides_2).view(
-            n, t - 1, 2, h, w
-        )
-
+        guides_1 = guides[:, :-1, :, :, :]
+        guides_2 = guides[:, 1:, :, :, :]
+        
+        if self.cpu_cache:
+            flows_backward = []
+            for tt in range(t-1):
+                fb = self.spynet[f"hg_{hg_idx}"](guides_1[:,tt], guides_2[:,tt])
+                flows_backward.append(fb.unsqueeze(1))
+            flows_backward = torch.cat(flows_backward, dim = 1)
+        
+        else:
+            guides_1 = guides_1.reshape(-1, c, h, w)
+            guides_2 = guides_2.reshape(-1, c, h, w)
+            flows_backward = self.spynet[f"hg_{hg_idx}"](guides_1, guides_2).view(
+                n, t - 1, 2, h, w
+            )
+        
         if self.is_mirror_extended:  # flows_forward = flows_backward.flip(1)
             flows_forward = None
         else:
-            flows_forward = self.spynet[f"hg_{hg_idx}"](guides_2, guides_1).view(
-                n, t - 1, 2, h, w
-            )
+            
+            if self.cpu_cache:
+                flows_forward = []
+                for tt in range(t-1):
+                    ff = self.spynet[f"hg_{hg_idx}"](guides_2[:,tt], guides_1[:,tt])
+                    flows_forward.append(ff.unsqueeze(1))
+                flows_forward = torch.cat(flows_forward, dim = 1)
 
+            else:
+                guides_1 = guides_1.reshape(-1, c, h, w)
+                guides_2 = guides_2.reshape(-1, c, h, w)
+                flows_forward = self.spynet[f"hg_{hg_idx}"](guides_2, guides_1).view(
+                    n, t - 1, 2, h, w
+                )
+        
         if self.cpu_cache:
             flows_backward = flows_backward.cpu()
             flows_forward = flows_forward.cpu()
@@ -527,7 +547,7 @@ class HVSR(nn.Module):
                 )
             else:
                 guide_feats_ = self.conv_guide_init[f"hg_{hg_idx}"](
-                    extra_inputs.view(-1, 2 + 6 + 1, int(h * 4), int(w * 4))
+                    extra_inputs.view(-1, 2 + 6 + 1, int(h * 4), int(w * 4)).to(guides.device)
                 )
                 feats_ = self.feat_extract[f"hg_{hg_idx}"](
                     torch.cat(
@@ -609,7 +629,11 @@ class HVSR(nn.Module):
         lqs = lqs.repeat_interleave(self.scale//4, dim = 3).repeat_interleave(self.scale//4, dim = 4)
 
         rgb_depth, rgb_conf, rgb_feats = self.hg_forward(lqs, guides, hg_idx=1)
-
+        
+        if self.cpu_cache:
+            rgb_depth = rgb_depth.to(guides.device)
+            rgb_conf = rgb_conf.to(guides.device)
+            
         inp_error = get_inp_error(
             cdfs.view(n * t, cdfs.shape[2], h, w),
             rebins.view(n * t, rebins.shape[2], h, w),
@@ -626,7 +650,7 @@ class HVSR(nn.Module):
             .detach()
             .to(inp_error.device)
         )
-
+        
         d_depth, d_conf, _ = self.hg_forward(
             lqs,
             guides,
@@ -635,6 +659,10 @@ class HVSR(nn.Module):
             hg_idx=2,
         )
 
+        if self.cpu_cache:
+            d_depth = d_depth.to(guides.device)
+            d_conf = d_conf.to(guides.device)
+        
         rgb_conf, d_conf = torch.chunk(
             self.softmax(
                 torch.cat(

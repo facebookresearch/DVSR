@@ -46,7 +46,7 @@ class DVSR(nn.Module):
         spynet_pretrained=None,
         cpu_cache_length=200,
     ):
-
+        
         super().__init__()
         self.mid_channels = mid_channels
         self.is_low_res_input = is_low_res_input
@@ -194,20 +194,41 @@ class DVSR(nn.Module):
         """
 
         n, t, c, h, w = guides.size() ## same resolution as final output
-        guides_1 = guides[:, :-1, :, :, :].reshape(-1, c, h, w)
-        guides_2 = guides[:, 1:, :, :, :].reshape(-1, c, h, w)
-
-        flows_backward = self.spynet[f"hg_{hg_idx}"](guides_1, guides_2).view(
-            n, t - 1, 2, h, w
-        )
-
+        guides_1 = guides[:, :-1, :, :, :]
+        guides_2 = guides[:, 1:, :, :, :]
+        
+        if self.cpu_cache:
+            flows_backward = []
+            for tt in range(t-1):
+                fb = self.spynet[f"hg_{hg_idx}"](guides_1[:,tt], guides_2[:,tt])
+                flows_backward.append(fb.unsqueeze(1))
+            flows_backward = torch.cat(flows_backward, dim = 1)
+        
+        else:
+            guides_1 = guides_1.reshape(-1, c, h, w)
+            guides_2 = guides_2.reshape(-1, c, h, w)
+            flows_backward = self.spynet[f"hg_{hg_idx}"](guides_1, guides_2).view(
+                n, t - 1, 2, h, w
+            )
+        
         if self.is_mirror_extended:  # flows_forward = flows_backward.flip(1)
             flows_forward = None
         else:
-            flows_forward = self.spynet[f"hg_{hg_idx}"](guides_2, guides_1).view(
-                n, t - 1, 2, h, w
-            )
+            
+            if self.cpu_cache:
+                flows_forward = []
+                for tt in range(t-1):
+                    ff = self.spynet[f"hg_{hg_idx}"](guides_2[:,tt], guides_1[:,tt])
+                    flows_forward.append(ff.unsqueeze(1))
+                flows_forward = torch.cat(flows_forward, dim = 1)
 
+            else:
+                guides_1 = guides_1.reshape(-1, c, h, w)
+                guides_2 = guides_2.reshape(-1, c, h, w)
+                flows_forward = self.spynet[f"hg_{hg_idx}"](guides_2, guides_1).view(
+                    n, t - 1, 2, h, w
+                )
+        
         if self.cpu_cache:
             flows_backward = flows_backward.cpu()
             flows_forward = flows_forward.cpu()
@@ -391,7 +412,7 @@ class DVSR(nn.Module):
                     ).cpu()
                 else:
                     guide_feat = self.conv_guide_init[f"hg_{hg_idx}"](
-                        extra_inputs[:, i, :, :, :]
+                        extra_inputs[:, i, :, :, :].to(guides.device)
                     )
                     feat = self.feat_extract[f"hg_{hg_idx}"](
                         torch.cat(
@@ -436,10 +457,10 @@ class DVSR(nn.Module):
             h, w = feats_.shape[2:]
             feats_ = feats_.view(n, t, -1, h, w)
             feats["spatial"] = [feats_[:, i, :, :, :] for i in range(0, t)]
-
+        
         # compute optical flow using the low-res inputs
         flows_forward, flows_backward = self.compute_flow(guides, hg_idx)
-
+        
         flows_forward = (
             F.interpolate(
                 flows_forward.view(-1, 2, int(h * 4), int(w * 4)),
@@ -456,7 +477,7 @@ class DVSR(nn.Module):
             ).view(n, t - 1, 2, h, w)
             / 4
         )
-
+        
         # feature propagation
         for iter_ in [1, 2]:
             for direction in ["backward", "forward"]:
@@ -511,7 +532,7 @@ class DVSR(nn.Module):
             2,
             dim=2,
         )
-
+        
         depth_final = d_depth * d_conf + rgb_depth * rgb_conf
         intermed = {
             "d_depth": d_depth,
