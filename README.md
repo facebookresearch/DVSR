@@ -19,6 +19,7 @@ Code and data release for the manuscript "[Consistent Direct Time-of-Flight Vide
 [Dataset]: https://drive.google.com/drive/u/0/folders/19MT7dhJaMkVd6y5QHywWqjZRNN08-XPU/
 
 ## 08/16/2023: Updated scripts and supports inference with less GPU memory
+## 04/17/2023: Dataset is released.
 ## 04/03/2023: Updated demo scripts.
 
 ## Highlights:
