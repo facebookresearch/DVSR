@@ -2,7 +2,7 @@ Code and data release for the manuscript "[Consistent Direct Time-of-Flight Vide
 
 [Zhanghao Sun], [Wei Ye], [Jinhui Xiong], [Gyeongmin Choe], [Jialiang Wang], [Shuochen Su], [Rakesh Ranjan].
 
-## [Project], [Paper], [Video]
+## [Project], [Paper], [Video], [Dataset]
 
 [Consistent Direct Time-of-Flight Video Depth Super-Resolution]: https://arxiv.org/abs/2211.08658
 [Zhanghao Sun]: https://zhsun0357.github.io/
@@ -16,7 +16,9 @@ Code and data release for the manuscript "[Consistent Direct Time-of-Flight Vide
 [Paper]: https://arxiv.org/abs/2211.08658.pdf
 [Video]: https://www.youtube.com/watch?v=77LTIDqhBjA
 [Project]: https://zhsun0357.github.io/consistent_dtof_video/
+[Dataset]: https://drive.google.com/drive/u/0/folders/19MT7dhJaMkVd6y5QHywWqjZRNN08-XPU/
 
+## 08/16/2023: Updated scripts and supports inference with less GPU memory
 ## 04/03/2023: Updated demo scripts.
 
 ## Highlights:
