@@ -288,10 +288,12 @@ class LoadDFromFileList:
     
     def __init__(self,
                  io_backend='disk',
+                 with_conf=False,
                  key='gt',
                  **kwargs):
 
         self.io_backend = io_backend
+        self.with_conf = with_conf
         self.key = key
         self.kwargs = kwargs
     
@@ -329,10 +331,16 @@ class LoadDFromFileList:
         
         ds = []
         shapes = []
+        if self.with_conf:
+            confs = []
         for filepath in filepaths:
             d = np.load(filepath)
             ds.append(d)
             shapes.append(d.shape)
+            
+            if self.with_conf:
+                conf = np.load(filepath.replace('depth', 'conf'))
+                confs.append(conf)
         
         """
         scale and crop the depth maps to fit into
@@ -343,7 +351,10 @@ class LoadDFromFileList:
         results[self.key] = ds
         results[f'{self.key}_path'] = filepaths
         results[f'{self.key}_ori_shape'] = shapes
-
+        
+        if self.with_conf:
+            results['conf'] = confs
+            
         return results
     
     

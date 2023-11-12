@@ -30,12 +30,14 @@ class DToFSimulator:
                  scale=16,
                  temp_res=1024,
                  dtof_sampler='peak',
+                 with_conf=False,
                  num_peaks = 1,
                  threshold = 0.1, 
                  key='lq'):
         self.scale = scale
         self.temp_res = temp_res
         self.dtof_sampler = dtof_sampler
+        self.with_conf = with_conf
         self.num_peaks = num_peaks
         self.threshold = threshold
         self.temp_bins = np.arange(self.temp_res)
@@ -165,11 +167,27 @@ class DToFSimulator:
         ds = results['gt']
         imgs = results['guide']
         
+        if self.with_conf:
+            if (self.dtof_sampler == 'peak') and \
+                ('conf' in results) and \
+                (results['conf'] is not None):
+                confs = results['conf']
+            else:
+                raise ValueError()
+        
         if self.dtof_sampler == 'peak':
             ## peak mode, only use peak depth as input
-            results['lq'] = [
+            if not self.with_conf:
+                results['lq'] = [
                     np.argmax(self.dtof_hist(d, img), axis=2)/ (self.temp_res - 1)
                     for (d, img) in zip(ds, imgs)
+                ]
+            
+            else:
+                results['lq'] = [
+                        np.argmax(self.dtof_hist(d, img * \
+                                    (np.tile(conf[..., np.newaxis], (1,1,3)) + 0.01)), axis=2)/ (self.temp_res - 1)
+                        for (d, img, conf) in zip(ds, imgs, confs)
                 ]
         elif self.dtof_sampler == 'mpeak':
             ## multi-peak mode, use multiple depth peaks as input
