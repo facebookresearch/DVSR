@@ -84,6 +84,10 @@ Disclaimer: During training, we assume the dToF data is relatively clean and acc
 
 [ARKit dToF data]: https://drive.google.com/drive/folders/1ntUU6S9UxUQDp8-y2n5vvtSeQd-zq9S1?usp=share_link
 
+Unfortunately, due to privacy policy from the dToF vendor, we can't publish real-world dToF data in this work. Therefore, using the downsampled ARKit dToF data is the best way to evaluate our method on pseudo-real-world data. Please follow "dvsr_arkit.ipynb" to download data from Apple ARKitscenes dataset, and run "bash demo_arkit_config.sh".
+
+**NOTE: this evaluation only applies to DVSR, not to HVSR**
+
 ## Train:
 You can use the following command to train the model:
 
