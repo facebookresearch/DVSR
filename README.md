@@ -87,7 +87,7 @@ Disclaimer: During training, we assume the dToF data is relatively clean and acc
 Unfortunately, due to privacy policy from the dToF vendor, we can't publish real-world dToF data in this work. Therefore, using the downsampled ARKit dToF data is the best way to evaluate our method on pseudo-real-world data. Please follow "dvsr_arkit.ipynb" to download data from Apple ARKitscenes dataset, and run.
 
     bash demo_arkit_conf.sh
-You need to change the data and result saving directories accordingly.
+**You need to change the data and result saving directories accordingly.**
 
 **NOTE: this evaluation only applies to DVSR, not to HVSR**
 
