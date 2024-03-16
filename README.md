@@ -18,6 +18,7 @@ Code and data release for the manuscript "[Consistent Direct Time-of-Flight Vide
 [Project]: https://zhsun0357.github.io/consistent_dtof_video/
 [Dataset]: https://drive.google.com/drive/u/0/folders/19MT7dhJaMkVd6y5QHywWqjZRNN08-XPU/
 
+## 03/16/2024: Added TEPE metric calculation in a demo notebook
 ## 08/16/2023: Supports inference with less GPU memory
 ## 04/17/2023: Dataset is released.
 ## 04/03/2023: Updated demo scripts.
